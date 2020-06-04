@@ -20,23 +20,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from edaac.log import get_logger
 import re
 
-
-def _time_string_to_seconds(time):
-    hour, minute, second = list(map(float, time.split(':')))
-    return int(second + minute*60 + hour*60*60)
-
-def _time_string_to_minutes(time):
-    hour, minute, second = list(map(float, time.split(':')))
-    return int(second/60.0 + minute + hour*60)
-
-def parse_innovus_log(log_file_path):
+def parse_innovus_area_report(log_file_path):
     logger = get_logger()
     metrics = {
-        'compute_cpu_time_total': None,
-        'compute_real_time_total': None,
-        'compute_mem_total': None,
         'area_stdcell': None,
-        'area_total': None
+        'area_stdcell_count': None
     }
 
     try:
@@ -47,20 +35,12 @@ def parse_innovus_log(log_file_path):
                      log_file_path)
         return
 
-    # Stats
-    regex = '--- Ending \"Innovus\" \(totcpu=(?P<cpu_total>[\-0-9\.:]*), real=(?P<time_total>[\-0-9\.:]*), mem=(?P<mem_total>[\-0-9\.]*)M\) ---'
-    m = re.search(regex, report)
-    if m:
-        metrics['compute_cpu_time_total'] = _time_string_to_seconds(m.group('cpu_total')) 
-        metrics['compute_real_time_total'] = _time_string_to_seconds(m.group('time_total'))
-        metrics['compute_mem_total'] = float(m.group('mem_total'))
-    
     # Area
-    regex = ' *= stdcell_area [0-9\.]* sites \((?P<stdcell_area>[0-9\.]*) um\^2\) \/ alloc_area [0-9\.]* sites \((?P<total_area>[0-9\.]*) um\^2\).*'
+    regex = '[-]*\n[a-zA-Z\_ ]*(?P<area_stdcell_count>[0-9]+) *(?P<area_stdcell>[0-9\.]+).*'
     m = re.search(regex, report)
     if m:
-        metrics['area_stdcell'] = int(float(m.group('stdcell_area')))
-        metrics['area_total'] = int(float(m.group('total_area')))
+        metrics['area_stdcell'] = float(m.group('area_stdcell')) 
+        metrics['area_stdcell_count'] = int(m.group('area_stdcell_count')) 
 
     logger.info('Successfully extracted metrics from %s', log_file_path)
 
